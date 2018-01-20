@@ -10,6 +10,7 @@ import Response from './response';
 import Headers from './headers';
 import Request, { getNodeRequestOptions } from './request';
 import FetchError from './fetch-error';
+import Blob from './blob';
 
 const http = require('http');
 const https = require('https');
@@ -201,5 +202,6 @@ export {
 	Headers,
 	Request,
 	Response,
-	FetchError
+	FetchError,
+	Blob,
 };

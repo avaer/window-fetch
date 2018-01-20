@@ -95,6 +95,7 @@ export default class Blob {
 		this[CLOSED] = true;
 	}
 }
+Blob.BUFFER = BUFFER;
 
 Object.defineProperty(Blob.prototype, Symbol.toStringTag, {
 	value: 'BlobPrototype',
