@@ -1,7 +1,7 @@
 {
-  "name": "node-fetch",
-  "version": "2.0.0-alpha.9",
-  "description": "A light-weight module that brings window.fetch to node.js",
+  "name": "window-fetch",
+  "version": "0.0.1",
+  "description": "Browser window.fetch polyfill for node",
   "main": "lib/index.js",
   "browser": "./browser.js",
   "module": "lib/index.es.js",
