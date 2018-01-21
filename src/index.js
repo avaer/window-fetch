@@ -36,151 +36,173 @@ export default function fetch(url, opts) {
 
 	// wrap http.request into fetch
 	return new fetch.Promise((resolve, reject) => {
-		// build request object
-		const request = new Request(url, opts);
-		const options = getNodeRequestOptions(request);
+    const match = url.match(/^data:(.+?)(;base64)?,/);
 
-		const send = (options.protocol === 'https:' ? https : http).request;
+    if (match) {
+      const all = match[0];
+      const type = match[1];
+      const isBase64 = Boolean(match[2]);
+      const dataString = url.slice(all.length);
+      const dataBuffer = new Buffer(dataString, isBase64 ? 'base64' : 'utf8');
+      const body = new Blob([dataBuffer], {type});
+      const responseOptions = {
+        url,
+        status: 200,
+        statusText: 'OK',
+        headers: {
+          'Content-Type': type,
+        },
+        size: body.byteLength,
+        timeout: null,
+      };
+      resolve(new Response(body, responseOptions));
+    } else {
+      // build request object
+      const request = new Request(url, opts);
+      const options = getNodeRequestOptions(request);
 
-		// http.request only support string as host header, this hack make custom host header possible
-		if (options.headers.host) {
-			options.headers.host = options.headers.host[0];
-		}
+      const send = (options.protocol === 'https:' ? https : http).request;
 
-		// send request
-		const req = send(options);
-		let reqTimeout;
+      // http.request only support string as host header, this hack make custom host header possible
+      if (options.headers.host) {
+        options.headers.host = options.headers.host[0];
+      }
 
-		if (request.timeout) {
-			req.once('socket', socket => {
-				reqTimeout = setTimeout(() => {
-					req.abort();
-					reject(new FetchError(`network timeout at: ${request.url}`, 'request-timeout'));
-				}, request.timeout);
-			});
-		}
+      // send request
+      const req = send(options);
+      let reqTimeout;
 
-		req.on('error', err => {
-			clearTimeout(reqTimeout);
-			reject(new FetchError(`request to ${request.url} failed, reason: ${err.message}`, 'system', err));
-		});
+      if (request.timeout) {
+        req.once('socket', socket => {
+          reqTimeout = setTimeout(() => {
+            req.abort();
+            reject(new FetchError(`network timeout at: ${request.url}`, 'request-timeout'));
+          }, request.timeout);
+        });
+      }
 
-		req.on('response', res => {
-			clearTimeout(reqTimeout);
+      req.on('error', err => {
+        clearTimeout(reqTimeout);
+        reject(new FetchError(`request to ${request.url} failed, reason: ${err.message}`, 'system', err));
+      });
 
-			// handle redirect
-			if (fetch.isRedirect(res.statusCode) && request.redirect !== 'manual') {
-				if (request.redirect === 'error') {
-					reject(new FetchError(`redirect mode is set to error: ${request.url}`, 'no-redirect'));
-					return;
-				}
+      req.on('response', res => {
+        clearTimeout(reqTimeout);
 
-				if (request.counter >= request.follow) {
-					reject(new FetchError(`maximum redirect reached at: ${request.url}`, 'max-redirect'));
-					return;
-				}
+        // handle redirect
+        if (fetch.isRedirect(res.statusCode) && request.redirect !== 'manual') {
+          if (request.redirect === 'error') {
+            reject(new FetchError(`redirect mode is set to error: ${request.url}`, 'no-redirect'));
+            return;
+          }
 
-				if (!res.headers.location) {
-					reject(new FetchError(`redirect location header missing at: ${request.url}`, 'invalid-redirect'));
-					return;
-				}
+          if (request.counter >= request.follow) {
+            reject(new FetchError(`maximum redirect reached at: ${request.url}`, 'max-redirect'));
+            return;
+          }
 
-				// per fetch spec, for POST request with 301/302 response, or any request with 303 response, use GET when following redirect
-				if (res.statusCode === 303
-					|| ((res.statusCode === 301 || res.statusCode === 302) && request.method === 'POST'))
-				{
-					request.method = 'GET';
-					request.body = null;
-					request.headers.delete('content-length');
-				}
+          if (!res.headers.location) {
+            reject(new FetchError(`redirect location header missing at: ${request.url}`, 'invalid-redirect'));
+            return;
+          }
 
-				request.counter++;
+          // per fetch spec, for POST request with 301/302 response, or any request with 303 response, use GET when following redirect
+          if (res.statusCode === 303
+            || ((res.statusCode === 301 || res.statusCode === 302) && request.method === 'POST'))
+          {
+            request.method = 'GET';
+            request.body = null;
+            request.headers.delete('content-length');
+          }
 
-				resolve(fetch(resolve_url(request.url, res.headers.location), request));
-				return;
-			}
+          request.counter++;
 
-			// normalize location header for manual redirect mode
-			const headers = new Headers();
-			for (const name of Object.keys(res.headers)) {
-				if (Array.isArray(res.headers[name])) {
-					for (const val of res.headers[name]) {
-						headers.append(name, val);
-					}
-				} else {
-					headers.append(name, res.headers[name]);
-				}
-			}
-			if (request.redirect === 'manual' && headers.has('location')) {
-				headers.set('location', resolve_url(request.url, headers.get('location')));
-			}
+          resolve(fetch(resolve_url(request.url, res.headers.location), request));
+          return;
+        }
 
-			// prepare response
-			let body = res.pipe(new PassThrough());
-			const response_options = {
-				url: request.url
-				, status: res.statusCode
-				, statusText: res.statusMessage
-				, headers: headers
-				, size: request.size
-				, timeout: request.timeout
-			};
+        // normalize location header for manual redirect mode
+        const headers = new Headers();
+        for (const name of Object.keys(res.headers)) {
+          if (Array.isArray(res.headers[name])) {
+            for (const val of res.headers[name]) {
+              headers.append(name, val);
+            }
+          } else {
+            headers.append(name, res.headers[name]);
+          }
+        }
+        if (request.redirect === 'manual' && headers.has('location')) {
+          headers.set('location', resolve_url(request.url, headers.get('location')));
+        }
 
-			// HTTP-network fetch step 16.1.2
-			const codings = headers.get('Content-Encoding');
+        // prepare response
+        let body = res.pipe(new PassThrough());
+        const response_options = {
+          url: request.url
+          , status: res.statusCode
+          , statusText: res.statusMessage
+          , headers: headers
+          , size: request.size
+          , timeout: request.timeout
+        };
 
-			// HTTP-network fetch step 16.1.3: handle content codings
+        // HTTP-network fetch step 16.1.2
+        const codings = headers.get('Content-Encoding');
 
-			// in following scenarios we ignore compression support
-			// 1. compression support is disabled
-			// 2. HEAD request
-			// 3. no Content-Encoding header
-			// 4. no content response (204)
-			// 5. content not modified response (304)
-			if (!request.compress || request.method === 'HEAD' || codings === null || res.statusCode === 204 || res.statusCode === 304) {
-				resolve(new Response(body, response_options));
-				return;
-			}
+        // HTTP-network fetch step 16.1.3: handle content codings
 
-			// For Node v6+
-			// Be less strict when decoding compressed responses, since sometimes
-			// servers send slightly invalid responses that are still accepted
-			// by common browsers.
-			// Always using Z_SYNC_FLUSH is what cURL does.
-			const zlibOptions = {
-				flush: zlib.Z_SYNC_FLUSH,
-				finishFlush: zlib.Z_SYNC_FLUSH
-			};
+        // in following scenarios we ignore compression support
+        // 1. compression support is disabled
+        // 2. HEAD request
+        // 3. no Content-Encoding header
+        // 4. no content response (204)
+        // 5. content not modified response (304)
+        if (!request.compress || request.method === 'HEAD' || codings === null || res.statusCode === 204 || res.statusCode === 304) {
+          resolve(new Response(body, response_options));
+          return;
+        }
 
-			// for gzip
-			if (codings == 'gzip' || codings == 'x-gzip') {
-				body = body.pipe(zlib.createGunzip(zlibOptions));
-				resolve(new Response(body, response_options));
-				return;
-			}
+        // For Node v6+
+        // Be less strict when decoding compressed responses, since sometimes
+        // servers send slightly invalid responses that are still accepted
+        // by common browsers.
+        // Always using Z_SYNC_FLUSH is what cURL does.
+        const zlibOptions = {
+          flush: zlib.Z_SYNC_FLUSH,
+          finishFlush: zlib.Z_SYNC_FLUSH
+        };
 
-			// for deflate
-			if (codings == 'deflate' || codings == 'x-deflate') {
-				// handle the infamous raw deflate response from old servers
-				// a hack for old IIS and Apache servers
-				const raw = res.pipe(new PassThrough());
-				raw.once('data', chunk => {
-					// see http://stackoverflow.com/questions/37519828
-					if ((chunk[0] & 0x0F) === 0x08) {
-						body = body.pipe(zlib.createInflate());
-					} else {
-						body = body.pipe(zlib.createInflateRaw());
-					}
-					resolve(new Response(body, response_options));
-				});
-				return;
-			}
+        // for gzip
+        if (codings == 'gzip' || codings == 'x-gzip') {
+          body = body.pipe(zlib.createGunzip(zlibOptions));
+          resolve(new Response(body, response_options));
+          return;
+        }
 
-			// otherwise, use response as-is
-			resolve(new Response(body, response_options));
-		});
+        // for deflate
+        if (codings == 'deflate' || codings == 'x-deflate') {
+          // handle the infamous raw deflate response from old servers
+          // a hack for old IIS and Apache servers
+          const raw = res.pipe(new PassThrough());
+          raw.once('data', chunk => {
+            // see http://stackoverflow.com/questions/37519828
+            if ((chunk[0] & 0x0F) === 0x08) {
+              body = body.pipe(zlib.createInflate());
+            } else {
+              body = body.pipe(zlib.createInflateRaw());
+            }
+            resolve(new Response(body, response_options));
+          });
+          return;
+        }
 
-		writeToStream(req, request);
+        // otherwise, use response as-is
+        resolve(new Response(body, response_options));
+      });
+
+      writeToStream(req, request);
+    }
 	});
 
 };
