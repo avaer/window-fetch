@@ -5,7 +5,7 @@
  * Body interface provides common methods for Request and Response
  */
 
-import Blob, { BUFFER } from './blob.js';
+import Blob from './blob.js';
 import FetchError from './fetch-error.js';
 
 const Stream = require('stream');
@@ -80,7 +80,7 @@ Body.prototype = {
 				type: ct.toLowerCase()
 			}),
 			{
-				[BUFFER]: buf
+				buffer: buf
 			}
 		));
 	},
@@ -165,7 +165,7 @@ function consumeBody(body) {
 
 	// body is blob
 	if (this.body instanceof Blob) {
-		return Body.Promise.resolve(this.body[BUFFER]);
+		return Body.Promise.resolve(this.body.buffer);
 	}
 
 	// body is buffer
@@ -433,7 +433,7 @@ export function writeToStream(dest, instance) {
 		dest.end();
 	} else if (body instanceof Blob) {
 		// body is blob
-		dest.write(body[BUFFER]);
+		dest.write(body.buffer);
 		dest.end();
 	} else if (Buffer.isBuffer(body)) {
 		// body is buffer

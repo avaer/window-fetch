@@ -1,7 +1,6 @@
 // Based on https://github.com/tmpvar/jsdom/blob/aa85b2abf07766ff7bf5c1f6daafb3726f2f2db5/lib/jsdom/living/blob.js
 // (MIT licensed)
 
-export const BUFFER = Symbol('buffer');
 const TYPE = Symbol('type');
 const CLOSED = Symbol('closed');
 
@@ -35,7 +34,7 @@ export default class Blob {
 				} else if (element instanceof ArrayBuffer) {
 					buffer = Buffer.from(element);
 				} else if (element instanceof Blob) {
-					buffer = element[BUFFER];
+					buffer = element.buffer;
 				} else {
 					buffer = Buffer.from(typeof element === 'string' ? element : String(element));
 				}
@@ -43,7 +42,7 @@ export default class Blob {
 			}
 		}
 
-		this[BUFFER] = Buffer.concat(buffers);
+		this.buffer = Buffer.concat(buffers);
 
 		let type = options && options.type !== undefined && String(options.type).toLowerCase();
 		if (type && !/[^\u0020-\u007E]/.test(type)) {
@@ -51,7 +50,7 @@ export default class Blob {
 		}
 	}
 	get size() {
-		return this[CLOSED] ? 0 : this[BUFFER].length;
+		return this[CLOSED] ? 0 : this.buffer.length;
 	}
 	get type() {
 		return this[TYPE];
@@ -81,13 +80,13 @@ export default class Blob {
 		}
 		const span = Math.max(relativeEnd - relativeStart, 0);
 
-		const buffer = this[BUFFER];
+		const buffer = this.buffer;
 		const slicedBuffer = buffer.slice(
 			relativeStart,
 			relativeStart + span
 		);
 		const blob = new Blob([], { type: arguments[2] });
-		blob[BUFFER] = slicedBuffer;
+		blob.buffer = slicedBuffer;
 		blob[CLOSED] = this[CLOSED];
 		return blob;
 	}
@@ -95,7 +94,6 @@ export default class Blob {
 		this[CLOSED] = true;
 	}
 }
-Blob.BUFFER = BUFFER;
 
 Object.defineProperty(Blob.prototype, Symbol.toStringTag, {
 	value: 'BlobPrototype',
