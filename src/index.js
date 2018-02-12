@@ -36,9 +36,8 @@ export default function fetch(url, opts) {
 
 	// wrap http.request into fetch
 	return new fetch.Promise((resolve, reject) => {
-    const match = url.match(/^data:(.+?)(;base64)?,/);
-
-    if (match) {
+    let match;
+    if (typeof url === 'string' && (match = url.match(/^data:(.+?)(;base64)?,/))) {
       const all = match[0];
       const type = match[1];
       const isBase64 = Boolean(match[2]);
