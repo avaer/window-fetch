@@ -27,15 +27,15 @@ const zlib = require('zlib');
  */
 export default function fetch(url, opts) {
 
-	// allow custom promise
-	if (!fetch.Promise) {
-		throw new Error('native promise missing, set fetch.Promise to your favorite alternative');
-	}
+  // allow custom promise
+  if (!fetch.Promise) {
+    throw new Error('native promise missing, set fetch.Promise to your favorite alternative');
+  }
 
-	Body.Promise = fetch.Promise;
+  Body.Promise = fetch.Promise;
 
-	// wrap http.request into fetch
-	return new fetch.Promise((resolve, reject) => {
+  // wrap http.request into fetch
+  return new fetch.Promise((resolve, reject) => {
     const _default = () => {
       // build request object
       const request = new Request(url, opts);
@@ -218,7 +218,7 @@ export default function fetch(url, opts) {
     } else {
       _default();
     }
-	});
+  });
 
 };
 
@@ -236,9 +236,9 @@ fetch.default = fetch;
 // expose Promise
 fetch.Promise = global.Promise;
 export {
-	Headers,
-	Request,
-	Response,
-	FetchError,
-	Blob,
+  Headers,
+  Request,
+  Response,
+  FetchError,
+  Blob,
 };
