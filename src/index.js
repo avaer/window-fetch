@@ -36,26 +36,7 @@ export default function fetch(url, opts) {
 
 	// wrap http.request into fetch
 	return new fetch.Promise((resolve, reject) => {
-    let match;
-    if (typeof url === 'string' && (match = url.match(/^data:(.+?)(;base64)?,/))) {
-      const all = match[0];
-      const type = match[1];
-      const isBase64 = Boolean(match[2]);
-      const dataString = url.slice(all.length);
-      const dataBuffer = new Buffer(dataString, isBase64 ? 'base64' : 'utf8');
-      const body = new Blob([dataBuffer], {type});
-      const responseOptions = {
-        url,
-        status: 200,
-        statusText: 'OK',
-        headers: {
-          'Content-Type': type,
-        },
-        size: body.byteLength,
-        timeout: null,
-      };
-      resolve(new Response(body, responseOptions));
-    } else {
+    const _default = () => {
       // build request object
       const request = new Request(url, opts);
       const options = getNodeRequestOptions(request);
@@ -201,6 +182,41 @@ export default function fetch(url, opts) {
       });
 
       writeToStream(req, request);
+    };
+
+    if (typeof url === 'string') {
+      let match;
+      if (match = url.match(/^file:\/\/(.*)$/)) {
+        fs.readFile(match[1], (err, data) => {
+          if (!err) {
+            resolve(new Response(new Blob([data])));
+          } else {
+            reject(err);
+          }
+        });
+      } else if (match = url.match(/^data:(.+?)(;base64)?,/)) {
+        const all = match[0];
+        const type = match[1];
+        const isBase64 = Boolean(match[2]);
+        const dataString = url.slice(all.length);
+        const dataBuffer = new Buffer(dataString, isBase64 ? 'base64' : 'utf8');
+        const body = new Blob([dataBuffer], { type });
+        const responseOptions = {
+          url,
+          status: 200,
+          statusText: 'OK',
+          headers: {
+            'Content-Type': type
+          },
+          size: body.byteLength,
+          timeout: null
+        };
+        resolve(new Response(body, responseOptions));
+      } else {
+        _default();
+      }
+    } else {
+      _default();
     }
 	});
 
