@@ -12,6 +12,7 @@ import Request, { getNodeRequestOptions } from './request';
 import FetchError from './fetch-error';
 import Blob from './blob';
 
+const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const { PassThrough } = require('stream');
