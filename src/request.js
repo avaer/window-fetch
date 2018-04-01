@@ -38,6 +38,13 @@ export default class Request {
     } else {
       parsedURL = parse_url(input.url);
     }
+    parsedURL = (() => {
+      const result = {};
+      for (const k in parsedURL) {
+        result[k] = parsedURL[k];
+      }
+      return result;
+    })();
 
     let method = init.method || input.method || 'GET';
 
