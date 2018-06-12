@@ -200,7 +200,7 @@ export default function fetch(url, opts) {
         const type = match[1];
         const isBase64 = Boolean(match[2]);
         const dataString = url.slice(all.length);
-        const dataBuffer = new Buffer(dataString, isBase64 ? 'base64' : 'utf8');
+        const dataBuffer = Buffer.from(dataString, isBase64 ? 'base64' : 'utf8');
         const body = new Blob([dataBuffer], { type });
         const responseOptions = {
           url,
