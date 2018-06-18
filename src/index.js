@@ -188,9 +188,17 @@ export default function fetch(url, opts) {
     if (typeof url === 'string') {
       let match;
       if (match = url.match(/^file:\/\/(.*)$/)) {
-        fs.readFile(match[1], (err, data) => {
+        const p = match[1];
+        fs.readFile(p, function (err, data) {
           if (!err) {
-            resolve(new Response(new Blob([data])));
+            const type = mime.getType(p);
+            const headers = new Headers();
+            headers.append('Content-Type', type);
+            resolve(new Response(new Blob([data], {
+              type,
+            }), {
+              headers,
+            }));
           } else {
             reject(err);
           }
