@@ -19,6 +19,8 @@ const { PassThrough } = require('stream');
 const { resolve: resolve_url } = require('url');
 const zlib = require('zlib');
 
+const mime = require('mime');
+
 /**
  * Fetch function
  *
