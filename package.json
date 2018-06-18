@@ -1,6 +1,6 @@
 {
   "name": "window-fetch",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Browser window.fetch polyfill for node",
   "main": "lib/index.js",
   "browser": "./browser.js",
