@@ -21,6 +21,8 @@ const zlib = require('zlib');
 
 const mime = require('mime');
 
+const _listify = x => Array.isArray(x) ? x : (x == null) ? [] : [x];
+
 /**
  * Fetch function
  *
@@ -232,6 +234,16 @@ export default function fetch(url, opts) {
   });
 
 };
+
+export function addHook(fn) {
+    // allow custom emitter
+    Body.dispatch = [..._listify(Body.dispatch)];
+    for (let f of _listify(fn)) {
+        if (!Body.dispatch.includes(f)) {
+            Body.dispatch.push(f);
+        }
+    }
+}
 
 /**
  * Redirect code matching

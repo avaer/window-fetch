@@ -141,6 +141,20 @@ Body.mixIn = function (proto) {
   }
 };
 
+const _listify = x => Array.isArray(x) ? x : (x == null) ? [] : [x];
+
+function dispatch(op, ...args) {
+  const props = Object.assign({op, whence: 'window-fetch'}, ...args);
+  for (const f of _listify(Body.dispatch)) {
+    f(props);
+  }
+}
+
+function onConsume(url, data, ...args) {
+  dispatch('fetch', {url, data}, ...args);
+  return data;
+}
+
 /**
  * Decode buffers into utf-8 string
  *
@@ -155,27 +169,27 @@ function consumeBody(body) {
 
   // body is null
   if (this.body === null) {
-    return Body.Promise.resolve(Buffer.alloc(0));
+    return Body.Promise.resolve(onConsume(this.url, Buffer.alloc(0)));
   }
 
   // body is string
   if (typeof this.body === 'string') {
-    return Body.Promise.resolve(Buffer.from(this.body));
+    return Body.Promise.resolve(onConsume(this.url, Buffer.from(this.body)));
   }
 
   // body is blob
   if (this.body instanceof Blob) {
-    return Body.Promise.resolve(this.body.buffer);
+    return Body.Promise.resolve(onConsume(this.url, this.body.buffer));
   }
 
   // body is buffer
   if (Buffer.isBuffer(this.body)) {
-    return Body.Promise.resolve(this.body);
+    return Body.Promise.resolve(onConsume(this.url, this.body));
   }
 
   // istanbul ignore if: should never happen
   if (!(this.body instanceof Stream)) {
-    return Body.Promise.resolve(Buffer.alloc(0));
+    return Body.Promise.resolve(onConsume(this.url, Buffer.alloc(0)));
   }
 
   // body is stream
@@ -221,7 +235,7 @@ function consumeBody(body) {
       }
 
       clearTimeout(resTimeout);
-      resolve(Buffer.concat(accum));
+      resolve(onConsume(this.url, Buffer.concat(accum)));
     });
   });
 }
