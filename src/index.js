@@ -16,7 +16,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const { PassThrough } = require('stream');
-const { resolve: resolve_url } = require('url');
+const { resolve: resolve_url, parse: parse_url } = require('url');
 const zlib = require('zlib');
 
 const mime = require('mime');
@@ -189,8 +189,8 @@ export default function fetch(url, opts) {
 
     if (typeof url === 'string') {
       let match;
-      if (match = url.match(/^file:\/\/(.*)$/)) {
-        const p = match[1];
+      if (match = url.match(/^(file:\/\/.*)$/)) {
+        const p = parse_url(match[1]).pathname;
         fs.readFile(p, function (err, data) {
           if (!err) {
             const type = mime.getType(p);
