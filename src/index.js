@@ -21,6 +21,8 @@ const zlib = require('zlib');
 
 const mime = require('mime');
 
+const config = {};
+
 /**
  * Fetch function
  *
@@ -44,7 +46,15 @@ export default function fetch(url, opts) {
       const request = new Request(url, opts);
       const options = getNodeRequestOptions(request);
 
-      const send = (options.protocol === 'https:' ? https : http).request;
+      const httpSend = (options.protocol === 'https:' ? https : http).request;
+      const send = options => {
+        const {intercept} = config;
+        if (intercept) {
+          return intercept(options, httpSend);
+        } else {
+          return httpSend(options);
+        }
+      };
 
       // http.request only support string as host header, this hack make custom host header possible
       if (options.headers.host) {
@@ -52,7 +62,7 @@ export default function fetch(url, opts) {
       }
 
       // send request
-      const req = send(options);
+      const req = httpSend(options);
       let reqTimeout;
 
       if (request.timeout) {
@@ -252,4 +262,7 @@ export {
   Response,
   FetchError,
   Blob,
+  setConfig(newConfig) {
+    Object.assign(config, newConfig);
+  },
 };
