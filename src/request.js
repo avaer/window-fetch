@@ -164,6 +164,8 @@ export function getNodeRequestOptions(request) {
     headers.set('Connection', 'close');
   }
 
+  headers.set('X-Requested-With', 'XMLHTTPRequest');
+
   // HTTP-network fetch step 4
   // chunked encoding is handled by Node.js
 
