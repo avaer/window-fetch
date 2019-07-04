@@ -196,11 +196,20 @@ export default function fetch(url, opts) {
             const type = mime.getType(p);
             const headers = new Headers();
             headers.append('Content-Type', type);
-            resolve(new Response(new Blob([data], {
+            const body = new PassThrough();
+            resolve(new Response(body, {
               type,
             }), {
+              url,
+              status: 200,
+              statusText: 'OK',
               headers,
+              size: data.byteLength,
+              timeout: null,
             }));
+            Process.nextTick().then(() => {
+              body.end(data);
+            });
           } else {
             reject(err);
           }
@@ -211,18 +220,20 @@ export default function fetch(url, opts) {
         const isBase64 = Boolean(match[2]);
         const dataString = url.slice(all.length);
         const dataBuffer = Buffer.from(dataString, isBase64 ? 'base64' : 'utf8');
-        const body = new Blob([dataBuffer], { type });
-        const responseOptions = {
+        const headers = new Headers();
+        headers.append('Content-Type', type);
+        const body = new PassThrough();
+        resolve(new Response(body, {
           url,
           status: 200,
           statusText: 'OK',
-          headers: {
-            'Content-Type': type
-          },
-          size: body.byteLength,
-          timeout: null
-        };
-        resolve(new Response(body, responseOptions));
+          headers,
+          size: dataBuffer.byteLength,
+          timeout: null,
+        }));
+        Process.nextTick().then(() => {
+          body.end(dataBuffer);
+        });
       } else {
         _default();
       }
