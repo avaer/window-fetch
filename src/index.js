@@ -191,12 +191,12 @@ export default function fetch(url, opts) {
       let match;
       if (match = url.match(/^(file:\/\/.*)$/)) {
         const p = parse_url(match[1]).pathname;
-        fs.readFile(p, function (err, data) {
+        fs.stat(p, function (err, stats) {
           if (!err) {
             const type = mime.getType(p);
             const headers = new Headers();
             headers.append('Content-Type', type);
-            const body = new PassThrough();
+            const body = fs.createReadStream(p);
             resolve(new Response(body, {
               type,
             }), {
@@ -204,12 +204,9 @@ export default function fetch(url, opts) {
               status: 200,
               statusText: 'OK',
               headers,
-              size: data.byteLength,
+              size: stats.size,
               timeout: null,
             }));
-            Process.nextTick().then(() => {
-              body.end(data);
-            });
           } else {
             reject(err);
           }
