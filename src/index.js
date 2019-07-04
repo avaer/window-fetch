@@ -228,7 +228,7 @@ export default function fetch(url, opts) {
           size: dataBuffer.byteLength,
           timeout: null,
         }));
-        Process.nextTick().then(() => {
+        Promise.resolve().then(() => {
           body.end(dataBuffer);
         });
       } else {
