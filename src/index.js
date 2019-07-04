@@ -206,7 +206,7 @@ export default function fetch(url, opts) {
               headers,
               size: stats.size,
               timeout: null,
-            }));
+            });
           } else {
             reject(err);
           }
